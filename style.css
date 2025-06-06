@@ -48,7 +48,19 @@
 
 .answer-option {
     transition: none;
-    /* Removed transition for instant response */
+}
+
+#progressBar {
+    transition: width 0.3s ease-in-out;
+}
+
+#hintButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+#hintText {
+    font-style: italic;
 }
 
 @media (max-width: 640px) {

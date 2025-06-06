@@ -2,6 +2,9 @@ let awlData = [];
 let currentWordIndex = 0;
 let quizMode = false;
 let filteredWords = [];
+let score = { correct: 0, total: 0 };
+let incorrectAnswers = [];
+let timer;
 
 const wordCard = document.getElementById("wordCard");
 const quizCard = document.getElementById("quizCard");
@@ -17,6 +20,13 @@ const toggleModeButton = document.getElementById("toggleMode");
 const sublistFilter = document.getElementById("sublistFilter");
 const prevButton = document.getElementById("prevButton");
 const nextButton = document.getElementById("nextButton");
+const reviewButton = document.getElementById("reviewButton");
+const hintButton = document.getElementById("hintButton");
+const hintText = document.getElementById("hintText");
+const scoreElement = document.getElementById("score");
+const timerElement = document.getElementById("timer");
+const progressBar = document.getElementById("progressBar");
+const timeLimit = 15; // seconds
 
 // Load data from data.json
 fetch("data.json")
@@ -28,6 +38,14 @@ fetch("data.json")
   })
   .catch((error) => console.error("Error loading data.json:", error));
 
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
 function getRandomAnswers(correctWord) {
   const answers = [correctWord];
   const otherWords = awlData.filter((w) => w.word !== correctWord);
@@ -37,6 +55,40 @@ function getRandomAnswers(correctWord) {
     otherWords.splice(randomIndex, 1);
   }
   return answers.sort(() => Math.random() - 0.5);
+}
+
+function resetScore() {
+  score = { correct: 0, total: 0 };
+  incorrectAnswers = [];
+  scoreElement.textContent = "0/0";
+  progressBar.style.width = "0%";
+  reviewButton.classList.add("hidden");
+}
+
+function startTimer() {
+  let timeLeft = timeLimit;
+  timerElement.textContent = timeLeft;
+  timer = setInterval(() => {
+    timeLeft--;
+    timerElement.textContent = timeLeft;
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      score.total++;
+      feedbackElement.textContent = `Time's up! Correct word: "${filteredWords[currentWordIndex].word}".`;
+      feedbackElement.className = "mt-4 text-red-600";
+      incorrectAnswers.push({
+        word: filteredWords[currentWordIndex],
+        userAnswer: "None (Time's up)",
+      });
+      answerOptions.forEach((btn) => (btn.disabled = true));
+      scoreElement.textContent = `${score.correct}/${score.total}`;
+      const progress = (score.total / filteredWords.length) * 100;
+      progressBar.style.width = `${progress}%`;
+      if (score.total === filteredWords.length) {
+        reviewButton.classList.remove("hidden");
+      }
+    }
+  }, 1000);
 }
 
 function displayWord() {
@@ -71,6 +123,9 @@ function displayWord() {
       )
       .join("");
     feedbackElement.textContent = "";
+    hintText.textContent = "";
+    hintText.classList.add("hidden");
+    hintButton.disabled = false;
 
     const answers = getRandomAnswers(word.word);
     answerOptions.forEach((button, index) => {
@@ -85,7 +140,10 @@ function displayWord() {
       );
       button.disabled = false;
     });
+    clearInterval(timer);
+    startTimer();
   } else {
+    clearInterval(timer);
     wordCard.classList.remove("hidden");
     quizCard.classList.add("hidden");
     wordElement.textContent = word.word;
@@ -124,6 +182,7 @@ function showSynonym(synonym) {
   if (synWord) {
     filteredWords = [synWord];
     currentWordIndex = 0;
+    resetScore();
     displayWord();
   }
 }
@@ -134,7 +193,9 @@ function filterWords() {
     filterValue === "all"
       ? [...awlData]
       : awlData.filter((w) => w.sublist == parseInt(filterValue));
+  if (quizMode) filteredWords = shuffleArray([...filteredWords]);
   currentWordIndex = 0;
+  resetScore();
   displayWord();
 }
 
@@ -143,21 +204,34 @@ function toggleMode() {
   toggleModeButton.textContent = quizMode
     ? "Switch to Study Mode"
     : "Switch to Quiz Mode";
+  if (quizMode) filteredWords = shuffleArray([...filteredWords]);
+  resetScore();
+  currentWordIndex = 0;
   displayWord();
 }
 
 function checkAnswer(event) {
   const button = event.target.closest(".answer-option");
-  if (!button || button.disabled) return; // Prevent multiple clicks
+  if (!button || button.disabled) return;
+  clearInterval(timer);
   const userAnswer = button.dataset.answer.toLowerCase();
   const correctAnswer = filteredWords[currentWordIndex].word.toLowerCase();
-  feedbackElement.textContent =
-    userAnswer === correctAnswer
-      ? "Correct!"
-      : `Wrong. Correct word: "${filteredWords[currentWordIndex].word}".`;
-  feedbackElement.className = `mt-4 ${
-    userAnswer === correctAnswer ? "text-green-600" : "text-red-600"
-  }`;
+  score.total++;
+  if (userAnswer === correctAnswer) {
+    score.correct++;
+    feedbackElement.textContent = "Correct!";
+    feedbackElement.className = "mt-4 text-green-600";
+  } else {
+    feedbackElement.textContent = `Wrong. Correct word: "${filteredWords[currentWordIndex].word}".`;
+    feedbackElement.className = "mt-4 text-red-600";
+    incorrectAnswers.push({
+      word: filteredWords[currentWordIndex],
+      userAnswer: button.dataset.answer,
+    });
+  }
+  scoreElement.textContent = `${score.correct}/${score.total}`;
+  const progress = (score.total / filteredWords.length) * 100;
+  progressBar.style.width = `${progress}%`;
 
   answerOptions.forEach((btn) => {
     btn.classList.remove(
@@ -175,7 +249,51 @@ function checkAnswer(event) {
     }
     btn.disabled = true;
   });
+
+  if (score.total === filteredWords.length) {
+    reviewButton.classList.remove("hidden");
+  }
 }
+
+hintButton.addEventListener("click", () => {
+  const word = filteredWords[currentWordIndex];
+  hintText.textContent = `Hint: Pronunciation: ${word.pronunciation}`;
+  hintText.classList.remove("hidden");
+  score.correct -= 0.5;
+  scoreElement.textContent = `${score.correct}/${score.total}`;
+  hintButton.disabled = true;
+});
+
+reviewButton.addEventListener("click", () => {
+  quizCard.innerHTML = `
+    <h2 class="text-lg sm:text-xl font-semibold mb-4 text-gray-800">Review Incorrect Answers</h2>
+    <div id="reviewContent" class="text-sm sm:text-base">
+      ${
+        incorrectAnswers.length === 0
+          ? "<p>No incorrect answers!</p>"
+          : incorrectAnswers
+              .map(
+                (item) => `
+            <div class="mb-4">
+              <p><strong>Word:</strong> ${item.word.word}</p>
+              <p><strong>Your Answer:</strong> ${item.userAnswer}</p>
+              <p><strong>Definition:</strong> ${item.word.definitions[0].text}</p>
+            </div>
+          `,
+              )
+              .join("")
+      }
+    </div>
+    <button id="restartQuiz" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm sm:text-base">Restart Quiz</button>
+  `;
+  document.getElementById("restartQuiz").addEventListener("click", () => {
+    incorrectAnswers = [];
+    currentWordIndex = 0;
+    filteredWords = shuffleArray([...filteredWords]);
+    resetScore();
+    displayWord();
+  });
+});
 
 prevButton.addEventListener("click", () => {
   currentWordIndex =

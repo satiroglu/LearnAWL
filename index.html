@@ -73,6 +73,33 @@
         <h2 class="text-lg sm:text-xl font-semibold mb-4 text-gray-800">
           Quiz Mode
         </h2>
+        <div class="mb-4 flex justify-between items-center">
+          <p class="text-sm sm:text-base text-gray-700">
+            Score: <span id="score">0/0</span>
+          </p>
+          <p class="text-sm sm:text-base text-gray-700">
+            Time: <span id="timer">15</span>s
+          </p>
+        </div>
+        <div class="w-full max-w-xs bg-gray-200 rounded-full h-2.5 mb-6">
+          <div
+            id="progressBar"
+            class="bg-indigo-600 h-2.5 rounded-full"
+            style="width: 0%"
+          ></div>
+        </div>
+        <div class="mb-4">
+          <button
+            id="hintButton"
+            class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 text-sm sm:text-base"
+          >
+            Show Hint
+          </button>
+          <p
+            id="hintText"
+            class="text-sm sm:text-base text-yellow-600 mt-2 hidden"
+          ></p>
+        </div>
         <div id="quizDefinitions" class="text-sm sm:text-base mb-6"></div>
         <div
           id="answerOptions"
@@ -81,7 +108,6 @@
           <button
             class="answer-option bg-gray-100 text-gray-800 px-4 py-3 rounded-lg hover:bg-indigo-100 text-sm sm:text-base text-left"
             data-answer=""
-            的部分
           >
             <span class="font-bold mr-2">A.</span
             ><span class="answer-text"></span>
@@ -109,6 +135,12 @@
           </button>
         </div>
         <p id="feedback" class="mt-4 text-sm sm:text-base"></p>
+        <button
+          id="reviewButton"
+          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm sm:text-base hidden mt-4"
+        >
+          Review Incorrect Answers
+        </button>
       </div>
 
       <div class="flex justify-between mt-6">
