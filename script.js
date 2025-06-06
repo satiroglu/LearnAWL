@@ -7,6 +7,8 @@ let incorrectAnswers = [];
 let timer;
 let isTimerPaused = false;
 let timeLeft = 15; // Store time left for resuming
+let audioUrl = null;
+let originalFilteredWords = []; // Store original sublist words
 
 const wordCard = document.getElementById("wordCard");
 const quizCard = document.getElementById("quizCard");
@@ -29,6 +31,7 @@ const scoreElement = document.getElementById("score");
 const timerElement = document.getElementById("timer");
 const progressBar = document.getElementById("progressBar");
 const pauseTimerButton = document.getElementById("pauseTimerButton");
+const playAudioButton = document.getElementById("playAudio");
 const timeLimit = 15; // seconds
 
 // Load data from data.json
@@ -37,6 +40,7 @@ fetch("data.json")
   .then((data) => {
     awlData = data;
     filteredWords = [...awlData];
+    originalFilteredWords = [...awlData]; // Store original sublist words
     filteredWords = shuffleArray([...filteredWords]); // Shuffle on page load
     displayWord();
   })
@@ -80,6 +84,228 @@ function showToast(message, type) {
   }).showToast();
 }
 
+async function fetchDictionaryData(word) {
+  try {
+    const response = await fetch(
+      `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`,
+    );
+    if (!response.ok) throw new Error("Word not found");
+    const data = await response.json();
+    return data[0];
+  } catch (error) {
+    showToast(`Error: Could not fetch data for "${word}"`, "error");
+    return null;
+  }
+}
+
+async function fetchAudio(word) {
+  try {
+    const data = await fetchDictionaryData(word);
+    if (data && data.phonetics) {
+      const phonetic = data.phonetics.find((p) => p.audio);
+      audioUrl = phonetic ? phonetic.audio : null;
+      playAudioButton.classList.toggle("hidden", !audioUrl);
+    } else {
+      audioUrl = null;
+      playAudioButton.classList.add("hidden");
+    }
+  } catch (error) {
+    audioUrl = null;
+    playAudioButton.classList.add("hidden");
+    showToast(`No audio available for "${word}"`, "error");
+  }
+}
+
+function playAudio() {
+  if (audioUrl) {
+    const audio = new Audio(audioUrl);
+    audio.play().catch(() => showToast("Error playing audio", "error"));
+  }
+}
+
+async function showSynonymOrRelatedWord(word) {
+  const data = await fetchDictionaryData(word);
+  if (data) {
+    const formattedWord = {
+      word: data.word,
+      pronunciation: data.phonetic || "",
+      pos: data.meanings[0]?.partOfSpeech || "",
+      definitions: data.meanings.flatMap((meaning) =>
+        meaning.definitions.map((def) => ({
+          text: def.definition,
+          example: def.example || "",
+          synonyms: def.synonyms || [],
+        })),
+      ),
+      sublist: 0, // Non-sublist word
+      related_forms: [], // API doesn't provide related forms
+    };
+    filteredWords = [formattedWord];
+    currentWordIndex = 0;
+    resetScore();
+    await fetchAudio(word);
+    displayWord();
+  }
+}
+
+async function displayWord() {
+  const word = filteredWords[currentWordIndex];
+  if (!word) {
+    wordCard.classList.add("hidden");
+    quizCard.classList.add("hidden");
+    return;
+  }
+
+  const isSublistWord = word.sublist !== 0; // Check if word is from data.json
+
+  if (quizMode) {
+    wordCard.classList.add("hidden");
+    quizCard.classList.remove("hidden");
+    quizDefinitionsElement.innerHTML = isSublistWord
+      ? word.definitions
+          .map(
+            (def) => `
+        <div class="mb-3">
+          <p class="text-[#112D4E]">${def.text}</p>
+          ${
+            def.example
+              ? `<p class="text-[#3F72AF] italic">E.g.: ${def.example}</p>`
+              : ""
+          }
+          ${
+            def.synonyms && def.synonyms.length
+              ? `<p class="text-[#3F72AF]"><span class="synonym-label">[Syn:</span> ${def.synonyms
+                  .map(
+                    (syn) =>
+                      `<span class="synonym" onclick="showSynonymOrRelatedWord('${syn}')">${syn}</span>`,
+                  )
+                  .join(", ")}]</p>`
+              : ""
+          }
+        </div>
+      `,
+          )
+          .join("")
+      : `<ol class="list-decimal list-inside">${word.definitions
+          .map(
+            (def) => `
+        <li class="mb-3">
+          <span class="text-[#112D4E]">${def.text}</span>
+          ${
+            def.example
+              ? `<p class="text-[#3F72AF] italic">E.g.: ${def.example}</p>`
+              : ""
+          }
+          ${
+            def.synonyms && def.synonyms.length
+              ? `<p class="text-[#3F72AF]"><span class="synonym-label">[Syn:</span> ${def.synonyms
+                  .map(
+                    (syn) =>
+                      `<span class="synonym" onclick="showSynonymOrRelatedWord('${syn}')">${syn}</span>`,
+                  )
+                  .join(", ")}]</p>`
+              : ""
+          }
+        </li>
+      `,
+          )
+          .join("")}</ol>`;
+    feedbackElement.textContent = "";
+    hintText.textContent = "";
+    hintText.classList.add("hidden");
+    hintButton.disabled = false;
+    timeLeft = timeLimit; // Reset timer
+    isTimerPaused = false;
+    pauseTimerButton.textContent = "Pause Timer";
+
+    const answers = getRandomAnswers(word.word);
+    answerOptions.forEach((button, index) => {
+      const answerText = button.querySelector(".answer-text");
+      answerText.textContent = answers[index] || "";
+      button.dataset.answer = answers[index] || "";
+      button.classList.remove("bg-green-500", "bg-red-500", "text-white");
+      button.classList.add(
+        "bg-[#DBE2EF]",
+        "text-[#112D4E]",
+        "hover:bg-[#3F72AF]",
+        "hover:text-white",
+      );
+      button.disabled = false;
+    });
+    clearInterval(timer);
+    startTimer();
+  } else {
+    clearInterval(timer);
+    wordCard.classList.remove("hidden");
+    quizCard.classList.add("hidden");
+    wordElement.textContent = word.word;
+    pronunciationElement.textContent = word.pronunciation || "";
+    posElement.textContent = word.pos || "";
+    document.getElementById("sublistTag").textContent = word.sublist
+      ? `Sublist ${word.sublist}`
+      : "External Word";
+    definitionsElement.innerHTML = isSublistWord
+      ? word.definitions
+          .map(
+            (def) => `
+        <div class="mb-3">
+          <p class="text-[#112D4E]">${def.text}</p>
+          ${
+            def.example
+              ? `<p class="text-[#3F72AF] italic">E.g.: ${def.example}</p>`
+              : ""
+          }
+          ${
+            def.synonyms && def.synonyms.length
+              ? `<p class="text-[#3F72AF]"><span class="synonym-label">[Syn:</span> ${def.synonyms
+                  .map(
+                    (syn) =>
+                      `<span class="synonym" onclick="showSynonymOrRelatedWord('${syn}')">${syn}</span>`,
+                  )
+                  .join(", ")}]</p>`
+              : ""
+          }
+        </div>
+      `,
+          )
+          .join("")
+      : `<ol class="list-decimal list-inside">${word.definitions
+          .map(
+            (def) => `
+        <li class="mb-3">
+          <span class="text-[#112D4E]">${def.text}</span>
+          ${
+            def.example
+              ? `<p class="text-[#3F72AF] italic">E.g.: ${def.example}</p>`
+              : ""
+          }
+          ${
+            def.synonyms && def.synonyms.length
+              ? `<p class="text-[#3F72AF]"><span class="synonym-label">[Syn:</span> ${def.synonyms
+                  .map(
+                    (syn) =>
+                      `<span class="synonym" onclick="showSynonymOrRelatedWord('${syn}')">${syn}</span>`,
+                  )
+                  .join(", ")}]</p>`
+              : ""
+          }
+        </li>
+      `,
+          )
+          .join("")}</ol>`;
+    relatedFormsElement.innerHTML =
+      word.related_forms && word.related_forms.length
+        ? `<strong class="related-forms-label">Related Forms:</strong> ${word.related_forms
+            .map(
+              (form) =>
+                `<span class="synonym" onclick="showSynonymOrRelatedWord('${form}')">${form}</span>`,
+            )
+            .join(", ")}`
+        : "";
+    await fetchAudio(word.word);
+  }
+}
+
 function startTimer() {
   timerElement.textContent = timeLeft;
   timer = setInterval(() => {
@@ -109,145 +335,14 @@ function startTimer() {
         );
         setTimeout(() => {
           currentWordIndex = (currentWordIndex + 1) % filteredWords.length;
+          filteredWords = [...originalFilteredWords]; // Restore sublist words
+          filteredWords = shuffleArray([...filteredWords]);
+          currentWordIndex = 0;
           displayWord();
         }, 3000);
       }
     }
   }, 1000);
-}
-
-function displayWord() {
-  const word = filteredWords[currentWordIndex];
-  if (!word) {
-    wordCard.classList.add("hidden");
-    quizCard.classList.add("hidden");
-    return;
-  }
-
-  if (quizMode) {
-    wordCard.classList.add("hidden");
-    quizCard.classList.remove("hidden");
-    quizDefinitionsElement.innerHTML = word.definitions
-      .map(
-        (def) => `
-      <div class="mb-3">
-        <p class="text-gray-700">${def.text}</p>
-        ${
-          def.example
-            ? `<p class="text-gray-500 italic">E.g.: ${def.example}</p>`
-            : ""
-        }
-        ${
-          def.synonyms && def.synonyms.length
-            ? `<p class="text-gray-500">[Syn: ${def.synonyms
-                .map(
-                  (syn) =>
-                    `<span class="synonym" onclick="showSynonym('${syn}')">${syn}</span>`,
-                )
-                .join(", ")}]</p>`
-            : ""
-        }
-      </div>
-    `,
-      )
-      .join("");
-    feedbackElement.textContent = "";
-    hintText.textContent = "";
-    hintText.classList.add("hidden");
-    hintButton.disabled = false;
-    timeLeft = timeLimit; // Reset timer
-    isTimerPaused = false;
-    pauseTimerButton.textContent = "Pause Timer";
-
-    const answers = getRandomAnswers(word.word);
-    answerOptions.forEach((button, index) => {
-      const answerText = button.querySelector(".answer-text");
-      answerText.textContent = answers[index] || "";
-      button.dataset.answer = answers[index] || "";
-      button.classList.remove("bg-green-500", "bg-red-500", "text-white");
-      button.classList.add(
-        "bg-gray-100",
-        "text-gray-800",
-        "hover:bg-indigo-100",
-      );
-      button.disabled = false;
-    });
-    clearInterval(timer);
-    startTimer();
-  } else {
-    clearInterval(timer);
-    wordCard.classList.remove("hidden");
-    quizCard.classList.add("hidden");
-    wordElement.textContent = word.word;
-    pronunciationElement.textContent = word.pronunciation || "";
-    posElement.textContent = word.pos || "";
-    document.getElementById(
-      "sublistTag",
-    ).textContent = `Sublist ${word.sublist}`;
-    definitionsElement.innerHTML = word.definitions
-      .map(
-        (def) => `
-      <div class="mb-3">
-        <p class="text-gray-700">${def.text}</p>
-        ${
-          def.example
-            ? `<p class="text-gray-500 italic">E.g.: ${def.example}</p>`
-            : ""
-        }
-        ${
-          def.synonyms && def.synonyms.length
-            ? `<p class="text-gray-500">[Syn: ${def.synonyms
-                .map(
-                  (syn) =>
-                    `<span class="synonym" onclick="showSynonym('${syn}')">${syn}</span>`,
-                )
-                .join(", ")}]</p>`
-            : ""
-        }
-      </div>
-    `,
-      )
-      .join("");
-    relatedFormsElement.innerHTML =
-      word.related_forms && word.related_forms.length
-        ? `<strong>Related Forms:</strong> ${word.related_forms.join(", ")}`
-        : "";
-  }
-}
-
-function showSynonym(synonym) {
-  const synWord = awlData.find(
-    (w) => w.word.toLowerCase() === synonym.toLowerCase(),
-  );
-  if (synWord) {
-    filteredWords = [synWord];
-    currentWordIndex = 0;
-    resetScore();
-    displayWord();
-  }
-}
-
-function filterWords() {
-  const filterValue = sublistFilter.value;
-  filteredWords =
-    filterValue === "all"
-      ? [...awlData]
-      : awlData.filter((w) => w.sublist == parseInt(filterValue));
-  filteredWords = shuffleArray([...filteredWords]); // Always shuffle words
-  currentWordIndex = 0;
-  resetScore();
-  displayWord();
-}
-
-function toggleMode() {
-  quizMode = !quizMode;
-  toggleModeButton.textContent = quizMode
-    ? "Switch to Study Mode"
-    : "Switch to Quiz Mode";
-  if (quizMode) filteredWords = shuffleArray([...filteredWords]);
-  resetScore();
-  currentWordIndex = 0;
-  displayWord();
 }
 
 function checkAnswer(event) {
@@ -283,14 +378,15 @@ function checkAnswer(event) {
       "bg-green-500",
       "bg-red-500",
       "text-white",
-      "hover:bg-indigo-100",
+      "hover:bg-[#3F72AF]",
+      "hover:text-white",
     );
     if (btn.dataset.answer.toLowerCase() === correctAnswer) {
       btn.classList.add("bg-green-500", "text-white");
     } else if (btn === button) {
       btn.classList.add("bg-red-500", "text-white");
     } else {
-      btn.classList.add("bg-gray-100", "text-gray-800");
+      btn.classList.add("bg-[#DBE2EF]", "text-[#112D4E]");
     }
     btn.disabled = true;
   });
@@ -302,7 +398,7 @@ function checkAnswer(event) {
 
 hintButton.addEventListener("click", () => {
   const word = filteredWords[currentWordIndex];
-  hintText.textContent = `Hint: Pronunciation: ${word.pronunciation}`;
+  hintText.textContent = `Pronunciation: ${word.pronunciation}`;
   hintText.classList.remove("hidden");
   // Only deduct points if no answer has been selected yet (buttons are not disabled)
   if (!answerOptions[0].disabled) {
@@ -322,10 +418,12 @@ pauseTimerButton.addEventListener("click", () => {
   }
 });
 
+playAudioButton.addEventListener("click", playAudio);
+
 reviewButton.addEventListener("click", () => {
   quizCard.innerHTML = `
-    <h2 class="text-lg sm:text-xl font-semibold mb-4 text-gray-800">Review Incorrect Answers</h2>
-    <div id="reviewContent" class="text-sm sm:text-base">
+    <h2 class="text-lg sm:text-xl font-semibold mb-4 text-[#112D4E]">Review Incorrect Answers</h2>
+    <div id="reviewContent" class="text-sm sm:text-base text-[#112D4E]">
       ${
         incorrectAnswers.length === 0
           ? "<p>No incorrect answers!</p>"
@@ -342,30 +440,64 @@ reviewButton.addEventListener("click", () => {
               .join("")
       }
     </div>
-    <button id="restartQuiz" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm sm:text-base">Restart Quiz</button>
+    <button id="restartQuiz" class="bg-[#3F72AF] text-white px-4 py-2 rounded-lg hover:bg-[#112D4E] text-sm sm:text-base">Restart Quiz</button>
   `;
   document.getElementById("restartQuiz").addEventListener("click", () => {
     incorrectAnswers = [];
     currentWordIndex = 0;
-    filteredWords = shuffleArray([...filteredWords]);
+    filteredWords = shuffleArray([...originalFilteredWords]); // Restore sublist words
     resetScore();
     displayWord();
   });
 });
 
 prevButton.addEventListener("click", () => {
+  filteredWords = [...originalFilteredWords]; // Restore sublist words
   currentWordIndex =
     (currentWordIndex - 1 + filteredWords.length) % filteredWords.length;
   displayWord();
 });
 
 nextButton.addEventListener("click", () => {
+  filteredWords = [...originalFilteredWords]; // Restore sublist words
   currentWordIndex = (currentWordIndex + 1) % filteredWords.length;
   displayWord();
 });
 
-sublistFilter.addEventListener("change", filterWords);
-toggleModeButton.addEventListener("click", toggleMode);
+sublistFilter.addEventListener("change", () => {
+  filteredWords = [...originalFilteredWords]; // Restore sublist words before filtering
+  filterWords();
+});
+
+toggleModeButton.addEventListener("click", () => {
+  filteredWords = [...originalFilteredWords]; // Restore sublist words
+  toggleMode();
+});
+
 answerOptions.forEach((button) => {
   button.addEventListener("click", checkAnswer);
 });
+
+function filterWords() {
+  const filterValue = sublistFilter.value;
+  filteredWords =
+    filterValue === "all"
+      ? [...awlData]
+      : awlData.filter((w) => w.sublist == parseInt(filterValue));
+  originalFilteredWords = [...filteredWords]; // Update original sublist words
+  filteredWords = shuffleArray([...filteredWords]); // Always shuffle words
+  currentWordIndex = 0;
+  resetScore();
+  displayWord();
+}
+
+function toggleMode() {
+  quizMode = !quizMode;
+  toggleModeButton.textContent = quizMode
+    ? "Switch to Study Mode"
+    : "Switch to Quiz Mode";
+  filteredWords = shuffleArray([...filteredWords]);
+  resetScore();
+  currentWordIndex = 0;
+  displayWord();
+}

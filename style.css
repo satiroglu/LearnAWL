@@ -3,29 +3,31 @@
 }
 
 #wordHeader {
-    border: 2px solid #e2e8f0;
+    border: 2px solid #DBE2EF;
     padding: 0.5rem;
     border-radius: 0.5rem;
 }
 
 #wordHeader h2 {
     margin-right: 0.5rem;
-    background-color: #dbeafe;
+    background-color: #DBE2EF;
     padding: 0.25rem 0.75rem;
     border-radius: 0.5rem;
+    color: #112D4E;
 }
 
 #wordHeader span {
-    background-color: #e0f2fe;
+    background-color: #F9F7F7;
     padding: 0.25rem 0.75rem;
     border-radius: 0.5rem;
 }
 
 #sublistTag {
-    background-color: #e0e7ff;
+    background-color: #DBE2EF;
     /* Matches hover:bg-indigo-100 */
     padding: 0.25rem 0.75rem;
     border-radius: 0.5rem;
+    color: #112D4E;
 }
 
 #pos {
@@ -33,17 +35,47 @@
 }
 
 .synonym {
-    color: #4f46e5;
+    background-color: #DBE2EF;
+    /* New color */
+    color: #3F72AF;
+    font-weight: 600;
     cursor: pointer;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid #3F72AF;
+    border-radius: 0.5rem;
     margin-right: 0.25rem;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
 }
 
 .synonym:hover {
+    background-color: #3F72AF;
+    /* New hover color */
+    color: #F9F7F7;
     text-decoration: underline;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    /* shadow-sm */
+}
+
+.synonym-label,
+.related-forms-label {
+    font-weight: 600;
+    color: #3F72AF;
+    margin-right: 0.25rem;
+}
+
+#hintText {
+    background-color: #DBE2EF;
+    /* Soft background */
+    border-radius: 0.5rem;
+    /* Rounded corners */
+    padding: 0.5rem 0.75rem;
+    /* Inner padding */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    /* Light shadow */
 }
 
 #relatedForms {
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid #DBE2EF;
     padding-top: 1rem;
 }
 
@@ -78,8 +110,8 @@
 footer {
     text-align: center;
     padding: 1rem 0;
-    background-color: #f8fafc;
-    color: #4b5563;
+    background-color: #F9F7F7;
+    color: #112D4E;
     font-size: 0.875rem;
     margin-top: 2rem;
 }
@@ -94,16 +126,61 @@ footer {
     }
 
     #wordHeader {
-        flex-direction: column;
-        text-align: center;
+        flex-direction: row;
+        /* Keep row layout for mobile */
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        /* Allow wrapping if content overflows */
+    }
+
+    #wordHeader>div {
+        flex-direction: row;
+        /* Ensure word, pronunciation, and playAudio are in a row */
+        align-items: center;
+        flex-wrap: nowrap;
+        /* Prevent wrapping within this div */
     }
 
     #wordHeader h2,
     #wordHeader span,
+    #playAudio {
+        display: inline-flex;
+        /* Inline-flex for inline alignment */
+        width: auto;
+        /* Remove full-width constraint */
+        margin-bottom: 0;
+        /* Remove margin for inline layout */
+        margin-right: 0.25rem;
+        /* Add small spacing between elements */
+    }
+
+    #wordHeader h2 {
+        font-size: 1.25rem;
+        /* Slightly smaller for mobile */
+    }
+
+    #pronunciation {
+        font-size: 0.875rem;
+        /* Adjust font size for mobile */
+    }
+
+    #playAudio {
+        margin-left: 0.25rem;
+        /* Tighten spacing */
+    }
+
     #sublistTag {
-        display: block;
-        width: 100%;
-        margin-bottom: 0.5rem;
+        display: inline-flex;
+        /* Inline-flex for right alignment */
+        width: auto;
+        /* Remove full-width constraint */
+        margin-left: auto;
+        /* Push to the right */
+        margin-bottom: 0;
+        /* Remove margin for inline layout */
+        font-size: 0.875rem;
+        /* Adjust font size for mobile */
     }
 
     #wordCard,
