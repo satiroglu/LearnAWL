@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AWL Vocabulary Learning</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="bg-gray-50 font-sans min-h-screen flex flex-col">
+    <div class="container mx-auto p-4 sm:p-6 max-w-3xl flex-grow">
+      <h1
+        class="text-2xl sm:text-3xl font-extrabold text-center mb-6 text-indigo-700"
+      >
+        AWL Vocabulary Learning
+      </h1>
+
+      <div
+        class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-4"
+      >
+        <div>
+          <label class="mr-2 font-semibold text-sm sm:text-base text-gray-700"
+            >Sublist:</label
+          >
+          <select
+            id="sublistFilter"
+            class="p-2 border border-gray-300 rounded-lg w-full sm:w-auto text-sm sm:text-base focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="all">All</option>
+            <option value="1">Sublist 1</option>
+            <option value="2">Sublist 2</option>
+            <option value="3">Sublist 3</option>
+            <option value="4">Sublist 4</option>
+            <option value="5">Sublist 5</option>
+            <option value="6">Sublist 6</option>
+            <option value="7">Sublist 7</option>
+            <option value="8">Sublist 8</option>
+            <option value="9">Sublist 9</option>
+            <option value="10">Sublist 10</option>
+          </select>
+        </div>
+        <button
+          id="toggleMode"
+          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm sm:text-base transition duration-200"
+        >
+          Switch to Quiz Mode
+        </button>
+      </div>
+
+      <div
+        id="wordCard"
+        class="bg-white p-4 sm:p-6 rounded-xl shadow-lg mb-6 hidden"
+      >
+        <div
+          id="wordHeader"
+          class="flex flex-col sm:flex-row sm:items-center mb-4"
+        >
+          <h2 id="word" class="text-xl sm:text-2xl font-semibold mr-2"></h2>
+          <span
+            id="pronunciation"
+            class="text-gray-600 text-sm sm:text-base"
+          ></span>
+        </div>
+        <p id="pos" class="text-gray-600 mb-3 text-sm sm:text-base"></p>
+        <div id="definitions" class="text-sm sm:text-base mb-4"></div>
+        <div id="relatedForms" class="text-sm sm:text-base"></div>
+      </div>
+
+      <div
+        id="quizCard"
+        class="bg-white p-4 sm:p-6 rounded-xl shadow-lg mb-6 hidden"
+      >
+        <h2 class="text-lg sm:text-xl font-semibold mb-4 text-gray-800">
+          Quiz Mode
+        </h2>
+        <div id="quizDefinitions" class="text-sm sm:text-base mb-6"></div>
+        <div
+          id="answerOptions"
+          class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6"
+        >
+          <button
+            class="answer-option bg-gray-100 text-gray-800 px-4 py-3 rounded-lg hover:bg-indigo-100 text-sm sm:text-base text-left"
+            data-answer=""
+            的部分
+          >
+            <span class="font-bold mr-2">A.</span
+            ><span class="answer-text"></span>
+          </button>
+          <button
+            class="answer-option bg-gray-100 text-gray-800 px-4 py-3 rounded-lg hover:bg-indigo-100 text-sm sm:text-base text-left"
+            data-answer=""
+          >
+            <span class="font-bold mr-2">B.</span
+            ><span class="answer-text"></span>
+          </button>
+          <button
+            class="answer-option bg-gray-100 text-gray-800 px-4 py-3 rounded-lg hover:bg-indigo-100 text-sm sm:text-base text-left"
+            data-answer=""
+          >
+            <span class="font-bold mr-2">C.</span
+            ><span class="answer-text"></span>
+          </button>
+          <button
+            class="answer-option bg-gray-100 text-gray-800 px-4 py-3 rounded-lg hover:bg-indigo-100 text-sm sm:text-base text-left"
+            data-answer=""
+          >
+            <span class="font-bold mr-2">D.</span
+            ><span class="answer-text"></span>
+          </button>
+        </div>
+        <p id="feedback" class="mt-4 text-sm sm:text-base"></p>
+      </div>
+
+      <div class="flex justify-between mt-6">
+        <button
+          id="prevButton"
+          class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 text-sm sm:text-base transition duration-200"
+        >
+          Previous
+        </button>
+        <button
+          id="nextButton"
+          class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 text-sm sm:text-base transition duration-200"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>

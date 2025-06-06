@@ -1,0 +1,90 @@
+.hidden {
+    display: none;
+}
+
+#wordHeader {
+    border: 2px solid #e2e8f0;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+#wordHeader h2 {
+    margin-right: 0.5rem;
+    background-color: #dbeafe;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+}
+
+#wordHeader span {
+    background-color: #e0f2fe;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+}
+
+.synonym {
+    color: #4f46e5;
+    cursor: pointer;
+    margin-right: 0.25rem;
+}
+
+.synonym:hover {
+    text-decoration: underline;
+}
+
+#relatedForms {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 1rem;
+}
+
+#relatedForms strong {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.answer-option:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.answer-option {
+    transition: none;
+    /* Removed transition for instant response */
+}
+
+@media (max-width: 640px) {
+    .container {
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    #wordHeader {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    #wordHeader h2,
+    #wordHeader span {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    #wordCard,
+    #quizCard {
+        padding: 1rem;
+    }
+
+    #word,
+    h2 {
+        font-size: 1.25rem;
+    }
+
+    button,
+    select {
+        font-size: 0.875rem;
+        width: 100%;
+    }
+}
