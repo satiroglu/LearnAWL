@@ -5,6 +5,8 @@ let filteredWords = [];
 let score = { correct: 0, total: 0 };
 let incorrectAnswers = [];
 let timer;
+let isTimerPaused = false;
+let timeLeft = 15; // Store time left for resuming
 
 const wordCard = document.getElementById("wordCard");
 const quizCard = document.getElementById("quizCard");
@@ -26,6 +28,7 @@ const hintText = document.getElementById("hintText");
 const scoreElement = document.getElementById("score");
 const timerElement = document.getElementById("timer");
 const progressBar = document.getElementById("progressBar");
+const pauseTimerButton = document.getElementById("pauseTimerButton");
 const timeLimit = 15; // seconds
 
 // Load data from data.json
@@ -34,6 +37,7 @@ fetch("data.json")
   .then((data) => {
     awlData = data;
     filteredWords = [...awlData];
+    filteredWords = shuffleArray([...filteredWords]); // Shuffle on page load
     displayWord();
   })
   .catch((error) => console.error("Error loading data.json:", error));
@@ -65,27 +69,48 @@ function resetScore() {
   reviewButton.classList.add("hidden");
 }
 
+function showToast(message, type) {
+  Toastify({
+    text: message,
+    duration: 3000,
+    gravity: "bottom",
+    position: "center",
+    backgroundColor: type === "error" ? "#dc2626" : "#16a34a",
+    className: "text-sm sm:text-base",
+  }).showToast();
+}
+
 function startTimer() {
-  let timeLeft = timeLimit;
   timerElement.textContent = timeLeft;
   timer = setInterval(() => {
-    timeLeft--;
-    timerElement.textContent = timeLeft;
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      score.total++;
-      feedbackElement.textContent = `Time's up! Correct word: "${filteredWords[currentWordIndex].word}".`;
-      feedbackElement.className = "mt-4 text-red-600";
-      incorrectAnswers.push({
-        word: filteredWords[currentWordIndex],
-        userAnswer: "None (Time's up)",
-      });
-      answerOptions.forEach((btn) => (btn.disabled = true));
-      scoreElement.textContent = `${score.correct}/${score.total}`;
-      const progress = (score.total / filteredWords.length) * 100;
-      progressBar.style.width = `${progress}%`;
-      if (score.total === filteredWords.length) {
-        reviewButton.classList.remove("hidden");
+    if (!isTimerPaused) {
+      timeLeft--;
+      timerElement.textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        score.total++;
+        const correctWord = filteredWords[currentWordIndex].word;
+        feedbackElement.textContent = `Time's up! Correct word: "${correctWord}".`;
+        feedbackElement.className = "mt-4 text-red-600";
+        incorrectAnswers.push({
+          word: filteredWords[currentWordIndex],
+          userAnswer: "None (Time's up)",
+        });
+        answerOptions.forEach((btn) => (btn.disabled = true));
+        scoreElement.textContent = `${score.correct}/${score.total}`;
+        const progress = (score.total / filteredWords.length) * 100;
+        progressBar.style.width = `${progress}%`;
+        if (score.total === filteredWords.length) {
+          reviewButton.classList.remove("hidden");
+        }
+        showToast(
+          `Time's up! Correct word: "${correctWord}". Moving to next word...`,
+          "error",
+        );
+        setTimeout(() => {
+          currentWordIndex = (currentWordIndex + 1) % filteredWords.length;
+          displayWord();
+        }, 3000);
       }
     }
   }, 1000);
@@ -107,9 +132,13 @@ function displayWord() {
         (def) => `
       <div class="mb-3">
         <p class="text-gray-700">${def.text}</p>
-        <p class="text-gray-500 italic">E.g.: ${def.example}</p>
         ${
-          def.synonyms
+          def.example
+            ? `<p class="text-gray-500 italic">E.g.: ${def.example}</p>`
+            : ""
+        }
+        ${
+          def.synonyms && def.synonyms.length
             ? `<p class="text-gray-500">[Syn: ${def.synonyms
                 .map(
                   (syn) =>
@@ -126,6 +155,9 @@ function displayWord() {
     hintText.textContent = "";
     hintText.classList.add("hidden");
     hintButton.disabled = false;
+    timeLeft = timeLimit; // Reset timer
+    isTimerPaused = false;
+    pauseTimerButton.textContent = "Pause Timer";
 
     const answers = getRandomAnswers(word.word);
     answerOptions.forEach((button, index) => {
@@ -147,16 +179,23 @@ function displayWord() {
     wordCard.classList.remove("hidden");
     quizCard.classList.add("hidden");
     wordElement.textContent = word.word;
-    pronunciationElement.textContent = word.pronunciation;
-    posElement.textContent = word.pos;
+    pronunciationElement.textContent = word.pronunciation || "";
+    posElement.textContent = word.pos || "";
+    document.getElementById(
+      "sublistTag",
+    ).textContent = `Sublist ${word.sublist}`;
     definitionsElement.innerHTML = word.definitions
       .map(
         (def) => `
       <div class="mb-3">
         <p class="text-gray-700">${def.text}</p>
-        <p class="text-gray-500 italic">E.g.: ${def.example}</p>
         ${
-          def.synonyms
+          def.example
+            ? `<p class="text-gray-500 italic">E.g.: ${def.example}</p>`
+            : ""
+        }
+        ${
+          def.synonyms && def.synonyms.length
             ? `<p class="text-gray-500">[Syn: ${def.synonyms
                 .map(
                   (syn) =>
@@ -169,9 +208,10 @@ function displayWord() {
     `,
       )
       .join("");
-    relatedFormsElement.innerHTML = word.related_forms.length
-      ? `<strong>Related Forms:</strong> ${word.related_forms.join(", ")}`
-      : "";
+    relatedFormsElement.innerHTML =
+      word.related_forms && word.related_forms.length
+        ? `<strong>Related Forms:</strong> ${word.related_forms.join(", ")}`
+        : "";
   }
 }
 
@@ -221,9 +261,14 @@ function checkAnswer(event) {
     score.correct++;
     feedbackElement.textContent = "Correct!";
     feedbackElement.className = "mt-4 text-green-600";
+    showToast("Correct!", "success");
   } else {
     feedbackElement.textContent = `Wrong. Correct word: "${filteredWords[currentWordIndex].word}".`;
     feedbackElement.className = "mt-4 text-red-600";
+    showToast(
+      `Wrong. Correct word: "${filteredWords[currentWordIndex].word}".`,
+      "error",
+    );
     incorrectAnswers.push({
       word: filteredWords[currentWordIndex],
       userAnswer: button.dataset.answer,
@@ -259,9 +304,22 @@ hintButton.addEventListener("click", () => {
   const word = filteredWords[currentWordIndex];
   hintText.textContent = `Hint: Pronunciation: ${word.pronunciation}`;
   hintText.classList.remove("hidden");
-  score.correct -= 0.5;
-  scoreElement.textContent = `${score.correct}/${score.total}`;
+  // Only deduct points if no answer has been selected yet (buttons are not disabled)
+  if (!answerOptions[0].disabled) {
+    score.correct -= 0.5;
+    scoreElement.textContent = `${score.correct}/${score.total}`;
+  }
   hintButton.disabled = true;
+});
+
+pauseTimerButton.addEventListener("click", () => {
+  isTimerPaused = !isTimerPaused;
+  pauseTimerButton.textContent = isTimerPaused ? "Resume Timer" : "Pause Timer";
+  if (!isTimerPaused) {
+    startTimer(); // Resume timer
+  } else {
+    clearInterval(timer); // Pause timer
+  }
 });
 
 reviewButton.addEventListener("click", () => {

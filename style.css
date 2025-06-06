@@ -21,6 +21,17 @@
     border-radius: 0.5rem;
 }
 
+#sublistTag {
+    background-color: #e0e7ff;
+    /* Matches hover:bg-indigo-100 */
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+}
+
+#pos {
+    font-style: italic;
+}
+
 .synonym {
     color: #4f46e5;
     cursor: pointer;
@@ -54,7 +65,8 @@
     transition: width 0.3s ease-in-out;
 }
 
-#hintButton:disabled {
+#hintButton:disabled,
+#pauseTimerButton:disabled {
     cursor: not-allowed;
     opacity: 0.7;
 }
@@ -87,7 +99,8 @@ footer {
     }
 
     #wordHeader h2,
-    #wordHeader span {
+    #wordHeader span,
+    #sublistTag {
         display: block;
         width: 100%;
         margin-bottom: 0.5rem;
