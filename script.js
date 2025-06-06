@@ -193,7 +193,7 @@ function filterWords() {
     filterValue === "all"
       ? [...awlData]
       : awlData.filter((w) => w.sublist == parseInt(filterValue));
-  if (quizMode) filteredWords = shuffleArray([...filteredWords]);
+  filteredWords = shuffleArray([...filteredWords]); // Always shuffle words
   currentWordIndex = 0;
   resetScore();
   displayWord();
