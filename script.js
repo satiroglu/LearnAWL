@@ -6,9 +6,9 @@ let score = { correct: 0, total: 0 };
 let incorrectAnswers = [];
 let timer;
 let isTimerPaused = false;
-let timeLeft = 15; // Store time left for resuming
+let timeLeft = 15;
 let audioUrl = null;
-let originalFilteredWords = []; // Store original sublist words
+let originalFilteredWords = [];
 
 const wordCard = document.getElementById("wordCard");
 const quizCard = document.getElementById("quizCard");
@@ -24,6 +24,7 @@ const toggleModeButton = document.getElementById("toggleMode");
 const sublistFilter = document.getElementById("sublistFilter");
 const prevButton = document.getElementById("prevButton");
 const nextButton = document.getElementById("nextButton");
+const homeButton = document.getElementById("homeButton");
 const reviewButton = document.getElementById("reviewButton");
 const hintButton = document.getElementById("hintButton");
 const hintText = document.getElementById("hintText");
@@ -32,16 +33,15 @@ const timerElement = document.getElementById("timer");
 const progressBar = document.getElementById("progressBar");
 const pauseTimerButton = document.getElementById("pauseTimerButton");
 const playAudioButton = document.getElementById("playAudio");
-const timeLimit = 15; // seconds
+const timeLimit = 15;
 
-// Load data from data.json
 fetch("data.json")
   .then((response) => response.json())
   .then((data) => {
     awlData = data;
     filteredWords = [...awlData];
-    originalFilteredWords = [...awlData]; // Store original sublist words
-    filteredWords = shuffleArray([...filteredWords]); // Shuffle on page load
+    originalFilteredWords = [...awlData];
+    filteredWords = shuffleArray([...filteredWords]);
     displayWord();
   })
   .catch((error) => console.error("Error loading data.json:", error));
@@ -137,8 +137,8 @@ async function showSynonymOrRelatedWord(word) {
           synonyms: def.synonyms || [],
         })),
       ),
-      sublist: 0, // Non-sublist word
-      related_forms: [], // API doesn't provide related forms
+      sublist: 0,
+      related_forms: [],
     };
     filteredWords = [formattedWord];
     currentWordIndex = 0;
@@ -156,7 +156,12 @@ async function displayWord() {
     return;
   }
 
-  const isSublistWord = word.sublist !== 0; // Check if word is from data.json
+  const isSublistWord = word.sublist !== 0;
+
+  // Toggle Previous, Next, and Home buttons based on External Word
+  prevButton.classList.toggle("hidden", !isSublistWord);
+  nextButton.classList.toggle("hidden", !isSublistWord);
+  homeButton.classList.toggle("hidden", isSublistWord);
 
   if (quizMode) {
     wordCard.classList.add("hidden");
@@ -214,7 +219,7 @@ async function displayWord() {
     hintText.textContent = "";
     hintText.classList.add("hidden");
     hintButton.disabled = false;
-    timeLeft = timeLimit; // Reset timer
+    timeLeft = timeLimit;
     isTimerPaused = false;
     pauseTimerButton.textContent = "Pause Timer";
 
@@ -335,7 +340,7 @@ function startTimer() {
         );
         setTimeout(() => {
           currentWordIndex = (currentWordIndex + 1) % filteredWords.length;
-          filteredWords = [...originalFilteredWords]; // Restore sublist words
+          filteredWords = [...originalFilteredWords];
           filteredWords = shuffleArray([...filteredWords]);
           currentWordIndex = 0;
           displayWord();
@@ -398,9 +403,8 @@ function checkAnswer(event) {
 
 hintButton.addEventListener("click", () => {
   const word = filteredWords[currentWordIndex];
-  hintText.textContent = `Pronunciation: ${word.pronunciation}`;
+  hintText.textContent = `Hint: Pronunciation: ${word.pronunciation}`;
   hintText.classList.remove("hidden");
-  // Only deduct points if no answer has been selected yet (buttons are not disabled)
   if (!answerOptions[0].disabled) {
     score.correct -= 0.5;
     scoreElement.textContent = `${score.correct}/${score.total}`;
@@ -412,13 +416,21 @@ pauseTimerButton.addEventListener("click", () => {
   isTimerPaused = !isTimerPaused;
   pauseTimerButton.textContent = isTimerPaused ? "Resume Timer" : "Pause Timer";
   if (!isTimerPaused) {
-    startTimer(); // Resume timer
+    startTimer();
   } else {
-    clearInterval(timer); // Pause timer
+    clearInterval(timer);
   }
 });
 
 playAudioButton.addEventListener("click", playAudio);
+
+homeButton.addEventListener("click", () => {
+  filteredWords = [...originalFilteredWords];
+  filteredWords = shuffleArray([...filteredWords]);
+  currentWordIndex = 0;
+  resetScore();
+  displayWord();
+});
 
 reviewButton.addEventListener("click", () => {
   quizCard.innerHTML = `
@@ -445,32 +457,32 @@ reviewButton.addEventListener("click", () => {
   document.getElementById("restartQuiz").addEventListener("click", () => {
     incorrectAnswers = [];
     currentWordIndex = 0;
-    filteredWords = shuffleArray([...originalFilteredWords]); // Restore sublist words
+    filteredWords = shuffleArray([...originalFilteredWords]);
     resetScore();
     displayWord();
   });
 });
 
 prevButton.addEventListener("click", () => {
-  filteredWords = [...originalFilteredWords]; // Restore sublist words
+  filteredWords = [...originalFilteredWords];
   currentWordIndex =
     (currentWordIndex - 1 + filteredWords.length) % filteredWords.length;
   displayWord();
 });
 
 nextButton.addEventListener("click", () => {
-  filteredWords = [...originalFilteredWords]; // Restore sublist words
+  filteredWords = [...originalFilteredWords];
   currentWordIndex = (currentWordIndex + 1) % filteredWords.length;
   displayWord();
 });
 
 sublistFilter.addEventListener("change", () => {
-  filteredWords = [...originalFilteredWords]; // Restore sublist words before filtering
+  filteredWords = [...originalFilteredWords];
   filterWords();
 });
 
 toggleModeButton.addEventListener("click", () => {
-  filteredWords = [...originalFilteredWords]; // Restore sublist words
+  filteredWords = [...originalFilteredWords];
   toggleMode();
 });
 
@@ -484,8 +496,8 @@ function filterWords() {
     filterValue === "all"
       ? [...awlData]
       : awlData.filter((w) => w.sublist == parseInt(filterValue));
-  originalFilteredWords = [...filteredWords]; // Update original sublist words
-  filteredWords = shuffleArray([...filteredWords]); // Always shuffle words
+  originalFilteredWords = [...filteredWords];
+  filteredWords = shuffleArray([...filteredWords]);
   currentWordIndex = 0;
   resetScore();
   displayWord();
