@@ -36,7 +36,6 @@
 
 .synonym {
     background-color: #DBE2EF;
-    /* Tag-like background */
     color: #3F72AF;
     font-weight: 600;
     cursor: pointer;
@@ -46,7 +45,7 @@
     margin-bottom: 0.25rem;
     display: inline-block;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    /* Light shadow */
+    text-decoration: underline;
     transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -106,6 +105,11 @@
 
 #hintText {
     font-style: italic;
+}
+
+#questionNumber {
+    font-weight: 600;
+    color: #112D4E;
 }
 
 footer {

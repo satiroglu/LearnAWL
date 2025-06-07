@@ -33,6 +33,7 @@ const timerElement = document.getElementById("timer");
 const progressBar = document.getElementById("progressBar");
 const pauseTimerButton = document.getElementById("pauseTimerButton");
 const playAudioButton = document.getElementById("playAudio");
+const questionNumber = document.getElementById("questionNumber");
 const timeLimit = 15;
 
 fetch("data.json")
@@ -63,6 +64,12 @@ function getRandomAnswers(correctWord) {
     otherWords.splice(randomIndex, 1);
   }
   return answers.sort(() => Math.random() - 0.5);
+}
+
+function getRandomDefinition(definitions) {
+  if (!definitions || definitions.length === 0) return null;
+  const randomIndex = Math.floor(Math.random() * definitions.length);
+  return definitions[randomIndex];
 }
 
 function resetScore() {
@@ -158,7 +165,6 @@ async function displayWord() {
 
   const isSublistWord = word.sublist !== 0;
 
-  // Toggle Previous, Next, and Home buttons based on External Word
   prevButton.classList.toggle("hidden", !isSublistWord);
   nextButton.classList.toggle("hidden", !isSublistWord);
   homeButton.classList.toggle("hidden", isSublistWord);
@@ -166,20 +172,22 @@ async function displayWord() {
   if (quizMode) {
     wordCard.classList.add("hidden");
     quizCard.classList.remove("hidden");
-    quizDefinitionsElement.innerHTML = isSublistWord
-      ? word.definitions
-          .map(
-            (def) => `
+    questionNumber.textContent = `Question ${score.total + 1}/${
+      filteredWords.length
+    }`;
+    const randomDefinition = getRandomDefinition(word.definitions);
+    quizDefinitionsElement.innerHTML = randomDefinition
+      ? `
         <div class="mb-3">
-          <p class="text-[#112D4E]">${def.text}</p>
+          <p class="text-[#112D4E]">${randomDefinition.text}</p>
           ${
-            def.example
-              ? `<p class="text-[#3F72AF] italic">E.g.: ${def.example}</p>`
+            randomDefinition.example
+              ? `<p class="text-[#3F72AF] italic">E.g.: ${randomDefinition.example}</p>`
               : ""
           }
           ${
-            def.synonyms && def.synonyms.length
-              ? `<p class="text-[#3F72AF]"><span class="synonym-label">[Syn:</span> ${def.synonyms
+            randomDefinition.synonyms && randomDefinition.synonyms.length
+              ? `<p class="text-[#3F72AF]"><span class="synonym-label">[Syn:</span> ${randomDefinition.synonyms
                   .map(
                     (syn) =>
                       `<span class="synonym" onclick="showSynonymOrRelatedWord('${syn}')">${syn}</span>`,
@@ -188,33 +196,8 @@ async function displayWord() {
               : ""
           }
         </div>
-      `,
-          )
-          .join("")
-      : `<ol class="list-decimal list-inside">${word.definitions
-          .map(
-            (def) => `
-        <li class="mb-3">
-          <span class="text-[#112D4E]">${def.text}</span>
-          ${
-            def.example
-              ? `<p class="text-[#3F72AF] italic">E.g.: ${def.example}</p>`
-              : ""
-          }
-          ${
-            def.synonyms && def.synonyms.length
-              ? `<p class="text-[#3F72AF]"><span class="synonym-label">[Syn:</span> ${def.synonyms
-                  .map(
-                    (syn) =>
-                      `<span class="synonym" onclick="showSynonymOrRelatedWord('${syn}')">${syn}</span>`,
-                  )
-                  .join(", ")}]</p>`
-              : ""
-          }
-        </li>
-      `,
-          )
-          .join("")}</ol>`;
+      `
+      : `<p class="text-[#112D4E]">No definition available.</p>`;
     feedbackElement.textContent = "";
     hintText.textContent = "";
     hintText.classList.add("hidden");
@@ -300,7 +283,7 @@ async function displayWord() {
           .join("")}</ol>`;
     relatedFormsElement.innerHTML =
       word.related_forms && word.related_forms.length
-        ? `<strong class="related-forms-label">Related Forms:</strong> ${word.related_forms
+        ? `<span class="related-forms-label">Related Forms:</span> ${word.related_forms
             .map(
               (form) =>
                 `<span class="synonym" onclick="showSynonymOrRelatedWord('${form}')">${form}</span>`,
@@ -331,6 +314,9 @@ function startTimer() {
         scoreElement.textContent = `${score.correct}/${score.total}`;
         const progress = (score.total / filteredWords.length) * 100;
         progressBar.style.width = `${progress}%`;
+        questionNumber.textContent = `Question ${score.total + 1}/${
+          filteredWords.length
+        }`;
         if (score.total === filteredWords.length) {
           reviewButton.classList.remove("hidden");
         }
@@ -377,6 +363,9 @@ function checkAnswer(event) {
   scoreElement.textContent = `${score.correct}/${score.total}`;
   const progress = (score.total / filteredWords.length) * 100;
   progressBar.style.width = `${progress}%`;
+  questionNumber.textContent = `Question ${score.total + 1}/${
+    filteredWords.length
+  }`;
 
   answerOptions.forEach((btn) => {
     btn.classList.remove(
